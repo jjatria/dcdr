@@ -107,12 +107,14 @@ func (g *Git) Create() error {
 		return fmt.Errorf("failed to commit into %s\n", g.Config.Git.RepoPath)
 	}
 
-	cmd = exec.Command(GitExec(), "remote", "add", "origin", g.Config.Git.RepoURL)
-	cmd.Dir = g.Config.Git.RepoPath
-	err = cmd.Run()
+	if g.Config.PushEnabled() {
+		cmd = exec.Command(GitExec(), "remote", "add", "origin", g.Config.Git.RepoURL)
+		cmd.Dir = g.Config.Git.RepoPath
+		err = cmd.Run()
 
-	if err != nil {
-		return fmt.Errorf("failed to add origin %s\n", g.Config.Git.RepoURL)
+		if err != nil {
+			return fmt.Errorf("failed to add origin %s\n", g.Config.Git.RepoURL)
+		}
 	}
 
 	err = g.Push()
@@ -122,6 +124,10 @@ func (g *Git) Create() error {
 
 // Clone makes a clone of the remote repository
 func (g *Git) Clone() error {
+	if !g.Config.GitEnabled() && !g.Config.PushEnabled() {
+		return nil
+	}
+
 	_, err := exec.Command(GitExec(), "clone", g.Config.Git.RepoURL, g.Config.Git.RepoPath).Output()
 
 	if err != nil {
@@ -137,6 +143,10 @@ func (g *Git) nothingToCommit(msg []byte) bool {
 
 // Pull gets the latest changes of the remote if it is enabled
 func (g *Git) Pull() error {
+	if !g.Config.PushEnabled() {
+		return nil
+	}
+
 	cmd := exec.Command(GitExec(), "pull", "origin", "master")
 	cmd.Dir = g.Config.Git.RepoPath
 	bts, err := cmd.Output()
@@ -195,6 +205,10 @@ func (g *Git) Commit(bts []byte, msg string) error {
 
 // Push sends changes to a remote repository
 func (g *Git) Push() error {
+	if !g.Config.PushEnabled() {
+		return nil
+	}
+
 	cmd := exec.Command(GitExec(), "push", "origin", "master")
 	cmd.Dir = g.Config.Git.RepoPath
 	err := cmd.Run()
@@ -219,12 +233,15 @@ func (g *Git) Exists() bool {
 
 // Init makes a clone of the remote repository if it exists
 func (g *Git) Init() {
-	if g.Enabled() {
-		g.Clone()
-	}
+	g.Clone()
 }
 
 // Enabled checks whether a repository path has been set
 func (g *Git) Enabled() bool {
 	return g.Config.GitEnabled()
+}
+
+// PushEnabled checks whether a remote repository has been set
+func (g *Git) PushEnabled() bool {
+	return g.Config.PushEnabled()
 }

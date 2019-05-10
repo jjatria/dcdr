@@ -61,10 +61,11 @@ func (ms *MockStore) Watch() error {
 func (ms *MockStore) Updated(kvs interface{}) {}
 
 type MockRepo struct {
-	error   error
-	sha     string
-	exists  bool
-	enabled bool
+	error       error
+	sha         string
+	exists      bool
+	enabled     bool
+	pushEnabled bool
 }
 
 func (mr *MockRepo) Clone() error {
@@ -85,6 +86,10 @@ func (mr *MockRepo) Exists() bool {
 
 func (mr *MockRepo) Enabled() bool {
 	return mr.enabled
+}
+
+func (mr *MockRepo) PushEnabled() bool {
+	return mr.pushEnabled
 }
 
 func (mr *MockRepo) Push() error {
