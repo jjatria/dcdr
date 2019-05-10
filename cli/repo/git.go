@@ -13,6 +13,7 @@ import (
 	"github.com/vsco/dcdr/config"
 )
 
+// IFace defines the repository interface
 type IFace interface {
 	Init()
 	Clone() error
@@ -25,12 +26,14 @@ type IFace interface {
 	CurrentSHA() (string, error)
 }
 
+// DefaultPerms stores the default file permissions
 const DefaultPerms = 0755
 
 var (
 	gitExec = ""
 )
 
+// GitExec returns the path to the git executable
 func GitExec() string {
 	if gitExec != "" {
 		return gitExec
@@ -48,10 +51,12 @@ func GitExec() string {
 	return gitExec
 }
 
+// Git stores a reference to the config
 type Git struct {
 	Config *config.Config
 }
 
+// New creates a new instance
 func New(c *config.Config) (g *Git) {
 	g = &Git{
 		Config: c,
@@ -60,6 +65,8 @@ func New(c *config.Config) (g *Git) {
 	return
 }
 
+// Create makes a new git repository in the path specified
+// and clones from the remote if it has been specified
 func (g *Git) Create() error {
 	err := os.MkdirAll(g.Config.Git.RepoPath, DefaultPerms)
 
@@ -113,6 +120,7 @@ func (g *Git) Create() error {
 	return err
 }
 
+// Clone makes a clone of the remote repository
 func (g *Git) Clone() error {
 	_, err := exec.Command(GitExec(), "clone", g.Config.Git.RepoURL, g.Config.Git.RepoPath).Output()
 
@@ -127,6 +135,7 @@ func (g *Git) nothingToCommit(msg []byte) bool {
 	return strings.Contains(string(msg[:]), "nothing to commit")
 }
 
+// Pull gets the latest changes of the remote if it is enabled
 func (g *Git) Pull() error {
 	cmd := exec.Command(GitExec(), "pull", "origin", "master")
 	cmd.Dir = g.Config.Git.RepoPath
@@ -139,6 +148,7 @@ func (g *Git) Pull() error {
 	return nil
 }
 
+// CurrentSHA gets the git SHA for the current HEAD
 func (g *Git) CurrentSHA() (string, error) {
 	cmd := exec.Command(GitExec(), "rev-parse", "HEAD")
 	cmd.Dir = g.Config.Git.RepoPath
@@ -151,6 +161,7 @@ func (g *Git) CurrentSHA() (string, error) {
 	return strings.TrimSpace(string(bts[:])), nil
 }
 
+// Commit saves the current changes in a new commit
 func (g *Git) Commit(bts []byte, msg string) error {
 	if !g.Config.GitEnabled() {
 		return nil
@@ -182,6 +193,7 @@ func (g *Git) Commit(bts []byte, msg string) error {
 	return nil
 }
 
+// Push sends changes to a remote repository
 func (g *Git) Push() error {
 	cmd := exec.Command(GitExec(), "push", "origin", "master")
 	cmd.Dir = g.Config.Git.RepoPath
@@ -194,6 +206,7 @@ func (g *Git) Push() error {
 	return nil
 }
 
+// Exists checks if git repository is initialised
 func (g *Git) Exists() bool {
 	_, err := os.Stat(g.Config.Git.RepoPath + "/.git")
 
@@ -204,12 +217,14 @@ func (g *Git) Exists() bool {
 	return true
 }
 
+// Init makes a clone of the remote repository if it exists
 func (g *Git) Init() {
 	if g.Enabled() {
 		g.Clone()
 	}
 }
 
+// Enabled checks whether a repository path has been set
 func (g *Git) Enabled() bool {
 	return g.Config.GitEnabled()
 }
